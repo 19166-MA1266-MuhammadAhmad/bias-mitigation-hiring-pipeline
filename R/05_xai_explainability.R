@@ -54,7 +54,7 @@ roc_by_gender <- function(pred_df, model_label) {
 
 plot_roc_by_gender <- function(roc_df) {
   ggplot(roc_df, aes(x = 1 - specificity, y = sensitivity, color = Gender)) +
-    geom_path(size = 1) +
+    geom_path(linewidth = 1) +
     facet_wrap(~model) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
     labs(title = "ROC Curves by Gender", x = "False Positive Rate", y = "True Positive Rate") +
