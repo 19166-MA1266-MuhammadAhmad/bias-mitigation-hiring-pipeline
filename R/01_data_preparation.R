@@ -34,9 +34,13 @@ load_hiring_data <- function(path = DATA_PATH) {
     ) %>%
     mutate(
       across(where(is.character), ~ na_if(trimws(.x), "")),
-      across(where(is.factor), ~ fct_explicit_na(.x, na_level = "Unknown"))
+      across(where(is.factor), ~ fct_na_value_to_level(.x, level = "Unknown"))
     ) %>%
-    filter(!is.na(Final_Decision), !is.na(Gender))
+    filter(!is.na(Final_Decision), !is.na(Gender)) %>%
+    mutate(
+      Final_Decision = factor(Final_Decision, levels = c("Rejected", "Selected")),
+      Gender = factor(Gender, levels = c("Male", "Female"))
+    )
 }
 
 create_train_test_split <- function(df, prop = 0.7, seed = 1266) {

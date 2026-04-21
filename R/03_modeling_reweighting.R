@@ -31,11 +31,14 @@ compute_reweighting <- function(df) {
 }
 
 fit_and_score <- function(wf, train_df, test_df, label, case_weights = NULL) {
-  fit <- if (is.null(case_weights)) {
-    fit(wf, data = train_df)
-  } else {
-    fit(wf, data = train_df, case_weights = case_weights)
+  if (!is.null(case_weights)) {
+    train_df <- train_df %>% mutate(.case_weights = case_weights)
+    wf <- wf %>%
+      remove_recipe() %>%
+      add_recipe(build_recipe(train_df)) %>%
+      add_case_weights(.case_weights)
   }
+  fit <- fit(wf, data = train_df)
 
   preds <- predict(fit, test_df, type = "prob") %>%
     bind_cols(predict(fit, test_df, type = "class")) %>%
@@ -106,12 +109,16 @@ train_models <- function(train_df, test_df) {
   )
   xgb_grid <- grid_regular(mtry(range = c(1L, max_mtry)), levels = 4)
 
+  train_df_w <- train_df %>% mutate(.case_weights = weights)
+  rec_w <- build_recipe(train_df_w)
+  base_wf_w <- workflow() %>% add_recipe(rec_w) %>% add_case_weights(.case_weights)
+  folds_w <- vfold_cv(train_df_w, v = 5, strata = Final_Decision)
+
   tuned_rf <- tune_grid(
-    base_wf %>% add_model(rf_spec),
-    resamples = folds,
+    base_wf_w %>% add_model(rf_spec),
+    resamples = folds_w,
     grid = rf_grid,
-    metrics = metric_set(roc_auc, f_meas),
-    case_weights = weights
+    metrics = metric_set(roc_auc, f_meas)
   )
 
   best_rf <- select_best(tuned_rf, metric = "roc_auc")
@@ -126,11 +133,10 @@ train_models <- function(train_df, test_df) {
   )
 
   tuned_xgb <- tune_grid(
-    base_wf %>% add_model(xgb_spec),
-    resamples = folds,
+    base_wf_w %>% add_model(xgb_spec),
+    resamples = folds_w,
     grid = xgb_grid,
-    metrics = metric_set(roc_auc, f_meas),
-    case_weights = weights
+    metrics = metric_set(roc_auc, f_meas)
   )
 
   best_xgb <- select_best(tuned_xgb, metric = "roc_auc")
