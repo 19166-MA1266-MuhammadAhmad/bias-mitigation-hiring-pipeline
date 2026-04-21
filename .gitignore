@@ -1,0 +1,35 @@
+# R session files
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+
+# RStudio files
+.Rproj.user/
+*.Rproj
+
+# renv/cache and project-local library
+renv/library/
+renv/staging/
+
+# Build artifacts
+*.html
+*.pdf
+*.log
+*.aux
+*.out
+*.toc
+
+# Model artifacts
+models/*.rds
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python (if used for helper tasks)
+__pycache__/
+*.pyc
+
+# Temporary files
+tmp/

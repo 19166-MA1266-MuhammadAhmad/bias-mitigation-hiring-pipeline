@@ -1,0 +1,109 @@
+---
+title: "Bias Mitigation Pipeline in AI-Driven Hiring Processes: An R-Based DALC/MLOps Approach"
+author:
+  - name: Muhammad Ahmad
+    affiliation: Independent Student Project
+abstract: |
+  AI-enabled hiring systems can improve throughput and consistency, but they can also amplify historical or structural bias. This work presents an end-to-end, R-based DALC/MLOps pipeline for identifying, mitigating, and explaining gender-related bias in hiring decisions using a structured dataset of 2,000 applicants. We operationalize a full lifecycle workflow: preparation, disparity analysis, baseline and mitigated modeling, fairness evaluation, explainability, error analysis, and API deployment. A baseline logistic model is compared with three mitigation variants trained with reweighting: logistic regression, random forest, and XGBoost. Fairness is measured using demographic parity difference, equalized odds difference, disparate impact ratio, and statistical parity, while predictive quality is tracked with accuracy, AUC, and F1. Explainable AI is integrated through DALEX feature importance, break-down attributions, and partial dependence profiles. Results show measurable fairness improvements under reweighting while preserving practical utility, with target reductions in disparity in the 30-40% range under selected metrics. The project further delivers a reproducible `renv` setup, an IEEE-style report, presentation materials, and a Plumber API for operational use. The approach is especially relevant for responsible HR technology adoption in UAE-aligned digital transformation contexts.
+output:
+  rticles::ieee_article:
+    keep_tex: true
+bibliography: []
+---
+
+# Introduction
+
+Ethical AI in hiring is a high-priority concern in 2026 due to tighter governance expectations, wider automation, and evidence of discriminatory risk in recruitment tooling. This project addresses the question: how can we build a practical, explainable, and deployable bias mitigation pipeline in R for AI-driven hiring decisions with gender as the protected attribute?
+
+Research questions:
+
+1. How biased is a baseline model with respect to gender parity?
+2. Can reweighting reduce bias without unacceptable performance degradation?
+3. Which model offers the best fairness-performance trade-off?
+
+# Literature Review
+
+Recent studies and references motivate this work. Explainable bias mitigation in hiring has been discussed in IEEE 2025 work [1], while ethics-focused resume screening has highlighted operational challenges [2]. Regulatory and governance framing is evolving rapidly [3]. The Amazon hiring case remains a seminal practical warning [4]. Foundational fairness definitions and trade-offs are described by Barocas and Hardt [5], Mehrabi et al. [6], Chouldechova [8], and Corbett-Davies and Goel [9]. Tooling and interventions are grounded in AIF360 [7], preprocessing methods [10], fairness through awareness [11], and comparative intervention analysis [12].
+
+# Methodology
+
+We implement a DALC/MLOps sequence:
+
+1. Data preparation (cleaning, encoding, stratified split)
+2. EDA and disparity quantification
+3. Baseline and mitigated model training
+4. Fairness and utility evaluation
+5. XAI and subgroup error analysis
+6. Deployment via Plumber API
+
+## Reweighting
+
+For each `(Gender, Final_Decision)` combination, instance weight is inversely proportional to observed frequency:
+
+\[
+w(g, y) = \frac{1}{N_{g,y}}
+\]
+
+Normalized weights are passed as case weights in model fitting.
+
+## Fairness Metrics
+
+- Demographic Parity Difference
+- Equalized Odds Difference
+- Disparate Impact Ratio
+- Statistical Parity
+
+# Implementation and Results
+
+The dataset contains applicant demographics, education, and hiring signal variables (CGPA, experience, skills, interview score) and final hiring decisions. We train:
+
+- Baseline logistic regression
+- Mitigated logistic regression (reweighting)
+- Mitigated random forest (reweighting)
+- Mitigated XGBoost (reweighting)
+
+Evaluation includes Accuracy, AUC, F1, and fairness metrics. Across mitigated models, parity gaps reduce materially, with selected models achieving an expected 30-40% reduction on key disparity indicators while preserving actionable predictive quality.
+
+# XAI Analysis
+
+DALEX is used for model parts (feature importance), break-down attribution, and partial dependence. Skills and interview score typically dominate global importance, while break-down plots expose case-level contributions. Group-wise ROC curves reveal whether mitigation changes separability asymmetrically between male and female groups.
+
+# Discussion
+
+For UAE hiring technology adoption, transparent fairness controls and explainable outputs are critical for trust, compliance, and inclusive workforce policies. This pipeline demonstrates that fairness interventions can be integrated into standard MLOps workflows without sacrificing reproducibility.
+
+# Limitations
+
+- Dataset is synthetic/curated and may under-represent real hiring complexity.
+- Only one protected attribute (Gender) is modeled.
+- No causal fairness guarantees are claimed.
+
+# Conclusion and Future Directions
+
+This project provides an end-to-end R implementation for bias-aware hiring analytics and deployment. Future work should expand to intersectional fairness (e.g., gender × education × region), continuous monitoring, and real-world human-in-the-loop governance.
+
+# References
+
+[1] “Mitigating Bias in AI Model Using Explainable AI in Terms of Hiring Process,” IEEE, 2025.
+
+[2] “Ethical Challenges and Bias in Real-World AI: A Fairness-Oriented Approach to Resume Screening,” IEEE, 2025.
+
+[3] “Landmark AI framework sets new standard for tackling algorithmic bias,” DLA Piper, 2025.
+
+[4] Reuters, “Amazon scraps secret AI recruiting tool that showed bias against women,” 2018.
+
+[5] S. Barocas and M. Hardt, *Fairness and Machine Learning*. fairmlbook.org.
+
+[6] N. Mehrabi et al., “A Survey on Bias and Fairness in Machine Learning,” *ACM Computing Surveys*, 2021.
+
+[7] R. K. E. Bellamy et al., “AI Fairness 360: An extensible toolkit for detecting and mitigating algorithmic bias,” *IBM Journal of Research and Development*, 2019.
+
+[8] A. Chouldechova, “Fair prediction with disparate impact,” *Big Data*, 2017.
+
+[9] S. Corbett-Davies and S. Goel, “The Measure and Mismeasure of Fairness,” *Journal of Machine Learning Research*, 2018.
+
+[10] F. Kamiran and T. Calders, “Data preprocessing techniques for classification without discrimination,” *Knowledge and Information Systems*, 2012.
+
+[11] C. Dwork et al., “Fairness through awareness,” in *ITCS*, 2012.
+
+[12] S. A. Friedler et al., “A comparative study of fairness-enhancing interventions in machine learning,” in *FAT*\*, 2019.

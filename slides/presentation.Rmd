@@ -1,0 +1,119 @@
+---
+title: "Bias Mitigation Pipeline in AI-Driven Hiring Processes"
+author: "Muhammad Ahmad (19166-MA1266)"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+
+## Title
+
+Bias Mitigation Pipeline in AI-Driven Hiring Processes  
+R-Based DALC/MLOps Implementation
+
+## Problem Statement
+
+- AI hiring can encode historical bias
+- Protected attribute: **Gender**
+- Goal: reduce unfair disparity while preserving utility
+
+## Motivation (2026 Context)
+
+- Ethical AI and trust requirements are rising
+- Hiring systems affect livelihoods at scale
+- Need explainable, auditable mitigation workflows
+
+## Literature Highlights
+
+- Bias mitigation with XAI in hiring [1]
+- Fairness-oriented resume screening [2]
+- Framework and governance updates [3]
+- Foundational fairness theory [5]-[12]
+
+## DALC/MLOps Methodology
+
+1. Data Preparation
+2. EDA & Bias Detection
+3. Modeling + Reweighting
+4. Fairness Evaluation
+5. XAI
+6. Deployment API
+
+## Dataset Overview
+
+- Source: `data/final_bias_hiring_dataset.csv`
+- Features: education, experience, skills, interview
+- Target: `Final_Decision` (Selected/Rejected)
+- Protected attribute: `Gender` (Male/Female)
+
+## EDA Findings
+
+- Group-level selection rates differ by gender
+- Score distributions are close but not identical
+- Correlation shows interview and skills drive outcomes
+
+## Baseline Model
+
+- Logistic regression without mitigation
+- Trained via `tidymodels`
+- Used as disparity reference point
+
+## Mitigation Strategy
+
+- Reweight underrepresented Gender × Decision combinations
+- Train weighted Logistic Regression, Random Forest, XGBoost
+
+## Model Performance Comparison
+
+- Accuracy, AUC, F1 compared across all models
+- Focus on fairness-performance trade-off
+
+## Fairness Metrics Before/After
+
+- Demographic Parity Difference
+- Equalized Odds Difference
+- Disparate Impact Ratio
+- Statistical Parity
+
+## XAI Findings
+
+- DALEX feature importance
+- Break-down attribution for individual applicants
+- Partial dependence for key features
+
+## Error Analysis
+
+- Confusion matrices by gender
+- FPR/FNR comparison before and after mitigation
+- Bias reduction target: 30-40%
+
+## Live Demo Overview
+
+- Train and save model (`R/save_model.R`)
+- Start Plumber API (`api/plumber.R`)
+- Test `/health`, `/predict`, `/fairness_report`
+
+## UAE Relevance
+
+- Supports inclusive digital HR practices
+- Aligns with responsible AI adoption goals
+- Improves transparency for decision support
+
+## Limitations & Future Work
+
+- Synthetic dataset constraints
+- Single protected attribute
+- Future: intersectional fairness + monitoring
+
+## Conclusion
+
+- End-to-end reproducible pipeline delivered
+- Fairness mitigation integrated with explainability
+- Deployment-ready through Plumber API
+
+## References
+
+[1]-[12] as listed in the IEEE paper.
+
+## Q&A
+
+Thank you.

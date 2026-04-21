@@ -1,0 +1,152 @@
+---
+title: "Bias Mitigation Pipeline in AI-Driven Hiring Processes"
+author: "Muhammad Ahmad (19166-MA1266)"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+library(DALEX)
+library(fairmodels)
+library(patchwork)
+library(pROC)
+
+source("R/01_data_preparation.R")
+source("R/02_eda_bias_detection.R")
+source("R/03_modeling_reweighting.R")
+source("R/04_fairness_evaluation.R")
+source("R/05_xai_explainability.R")
+```
+
+## Phase 1 - Data Preparation
+
+```{r data-prep}
+df <- load_hiring_data("data/final_bias_hiring_dataset.csv")
+split_obj <- create_train_test_split(df, prop = 0.7, seed = 1266)
+train_df <- split_obj$train
+test_df <- split_obj$test
+
+dim(df)
+summary(df)
+```
+
+## Phase 2 - EDA & Bias Detection
+
+```{r summary-by-gender}
+summary_gender <- df %>%
+  group_by(Gender) %>%
+  summarise(
+    applicants = n(),
+    avg_cgpa = mean(CGPA, na.rm = TRUE),
+    avg_skills = mean(Skills_Score, na.rm = TRUE),
+    avg_interview = mean(Interview_Score, na.rm = TRUE),
+    selected_rate = mean(Final_Decision == "Selected"),
+    .groups = "drop"
+  )
+summary_gender
+```
+
+```{r rates-and-di}
+selection_rates_by_gender(df)
+disparate_impact_ratio(df)
+```
+
+```{r plots-eda, fig.width=10, fig.height=10}
+p1 <- plot_selection_rates(df)
+p2 <- plot_distributions_by_gender(df)
+p1 / p2
+```
+
+```{r correlation-heatmap, fig.width=8, fig.height=6}
+plot_correlation_heatmap(df)
+```
+
+```{r dalex-initial}
+initial_explainer <- build_initial_dalex_explainer(train_df)
+initial_mp <- model_parts(initial_explainer)
+plot(initial_mp)
+```
+
+## Phase 3 - Modeling with Bias Mitigation
+
+```{r modeling}
+trained <- train_models(train_df, test_df)
+metrics_table <- bind_rows(lapply(trained$results, function(x) {
+  x$metrics %>% mutate(model = x$label, .before = 1)
+}))
+metrics_table
+```
+
+## Phase 4 - Fairness Evaluation
+
+```{r fairness}
+fairness_table <- build_fairness_table(trained)
+fairness_table
+```
+
+```{r fairmodels-object, message=FALSE, warning=FALSE}
+fair_objects <- build_fairmodels_object(trained)
+str(fair_objects, max.level = 1)
+```
+
+## Phase 5 - XAI (Explainable AI)
+
+```{r xai, fig.width=10, fig.height=6}
+explainer_list <- lapply(trained$results, function(x) {
+  build_dalex_explainer(x$fit, train_df, x$label)
+})
+
+plot_feature_importance(explainer_list[[1]])
+```
+
+```{r breakdown}
+obs <- test_df %>% slice(1) %>% select(-Final_Decision, -Applicant_ID, -Applicant_Name)
+bd <- breakdown_single_prediction(explainer_list[[1]], obs)
+plot(bd)
+```
+
+```{r pdp}
+pdp <- partial_dependence_profile(explainer_list[[1]], "Skills_Score")
+plot(pdp)
+```
+
+```{r roc-group, fig.width=10, fig.height=6}
+roc_df <- bind_rows(lapply(trained$results, function(x) {
+  roc_by_gender(x$predictions, x$label)
+}))
+plot_roc_by_gender(roc_df)
+```
+
+## Phase 6 - Error Analysis
+
+```{r confusion-by-gender}
+confusion_by_model_gender <- bind_rows(lapply(trained$results, function(x) {
+  x$predictions %>%
+    group_by(Gender) %>%
+    group_modify(~ broom::tidy(conf_mat(.x, truth = Final_Decision, estimate = .pred_class))) %>%
+    mutate(model = x$label, .before = 1)
+}))
+confusion_by_model_gender
+```
+
+```{r fpr-fnr}
+error_rates <- bind_rows(lapply(trained$results, function(x) {
+  compute_group_rates(x$predictions) %>% mutate(model = x$label, .before = 1)
+}))
+error_rates
+```
+
+```{r performance-table}
+performance_table <- metrics_table %>%
+  select(model, .metric, .estimate) %>%
+  pivot_wider(names_from = .metric, values_from = .estimate) %>%
+  left_join(fairness_table, by = "model")
+
+performance_table
+```
