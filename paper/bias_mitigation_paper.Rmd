@@ -1,0 +1,50 @@
+---
+title: "Bias Mitigation Pipeline in AI-Driven Hiring Processes: A Dual-Dataset R-Based DALC/MLOps Approach"
+author: "Muhammad Ahmad"
+output: rticles::ieee_article
+---
+
+## Abstract
+This paper presents a dual-dataset bias mitigation pipeline for AI-driven hiring built in R using a DALC/MLOps workflow. We evaluate one synthetic hiring dataset and one Kaggle AI Hiring Bias Detection dataset through the same preparation, modeling, fairness, and explainability phases. We compare baseline and reweighted models using logistic regression, random forest, and XGBoost. Fairness is assessed with demographic parity, equalized odds, and disparate impact ratio, while explainability uses DALEX-based feature importance and attribution. Results are reported per dataset and compared side-by-side to demonstrate cross-dataset validation and practical credibility for responsible AI adoption.
+
+## 1. Introduction
+Ethical AI in hiring remains a critical 2026 challenge. This project asks whether a single bias mitigation pipeline can reduce unfairness across two datasets with distinct characteristics.
+
+## 2. Literature Review
+[1] Mitigating Bias in AI Model Using Explainable AI in Terms of Hiring Process (IEEE, 2025).  
+[2] Ethical Challenges and Bias in Real-World AI: A Fairness-Oriented Approach to Resume Screening (IEEE, 2025).  
+[3] Landmark AI framework sets new standard for tackling algorithmic bias (DLA Piper, 2025).  
+[4] Amazon hiring tool bias case (Reuters, 2018).  
+[5] Barocas & Hardt, *Fairness and Machine Learning* (fairmlbook.org).  
+[6] Mehrabi et al., ACM Computing Surveys, 2021.  
+[7] Bellamy et al., IBM Journal, 2019.  
+[8] Chouldechova, Big Data, 2017.  
+[9] Corbett-Davies & Goel, JMLR, 2018.  
+[10] Kamiran & Calders, KAIS, 2012.  
+[11] Dwork et al., ITCS, 2012.  
+[12] Friedler et al., FAT*, 2019.
+
+## 3. Methodology
+We follow DALC phases: data preparation, EDA, modeling, fairness evaluation, XAI, and deployment. Reweighting is applied using inverse-frequency group-outcome weights.
+
+## 4. Dataset Overview
+- **Dataset 1** (`final_bias_hiring_dataset.csv`): synthetic hiring data for injected-bias experiments.  
+- **Dataset 2** (`data.csv`): Kaggle AI hiring dataset for live validation.
+
+## 5. Results
+Performance (Accuracy, AUC, F1) and fairness (Demographic Parity, Equalized Odds, Disparate Impact Ratio) are reported separately for each dataset and compared.
+
+## 6. XAI Analysis
+Feature importance, break-down explanations, and partial dependence profiles are generated per dataset.
+
+## 7. Discussion
+Cross-dataset consistency supports credible, practical fairness intervention, including UAE hiring ecosystem relevance.
+
+## 8. Limitations
+Synthetic data realism limitations and single protected attribute (Gender) are key constraints.
+
+## 9. Conclusion and Future Directions
+The dual-dataset pipeline improves trustworthiness and reproducibility. Future work includes multi-attribute fairness and drift monitoring.
+
+## References
+See citations [1]–[12].

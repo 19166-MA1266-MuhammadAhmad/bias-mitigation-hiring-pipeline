@@ -1,0 +1,68 @@
+---
+title: "Dual-Dataset Bias Mitigation Pipeline"
+author: "Term Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Phase 1: Data Preparation (Both Datasets)
+
+```{r}
+source('R/01_data_preparation.R')
+```
+
+### Dataset 1 — Synthetic Loan/Hiring Data
+- File: `data/final_bias_hiring_dataset.csv`
+- Protected attribute: `Gender` (Male/Female text -> 0/1)
+- Target: `Final_Decision` (Selected/Rejected -> 0/1)
+
+### Dataset 2 — AI Hiring (Kaggle)
+- File: `data/data.csv`
+- Protected attribute: `Gender` (0/1)
+- Target: `HiringDecision` (0/1)
+
+## Phase 2: EDA & Bias Detection (Side-by-Side)
+
+```{r}
+source('R/02_eda_bias_detection.R')
+readr::read_csv('outputs/eda/disparate_impact_summary.csv', show_col_types = FALSE)
+```
+
+```{r, echo=FALSE}
+knitr::include_graphics('outputs/eda/hiring_rates_by_gender.png')
+```
+
+## Phase 3: Modeling with Reweighting (Both Datasets)
+
+```{r}
+source('R/03_modeling_reweighting.R')
+readr::read_csv('outputs/model_metrics_dual_dataset.csv', show_col_types = FALSE)
+```
+
+## Phase 4: Fairness Evaluation (Comparative)
+
+```{r}
+source('R/04_fairness_evaluation.R')
+readr::read_csv('outputs/fairness/fairness_metrics.csv', show_col_types = FALSE)
+readr::read_csv('outputs/fairness/bias_reduction.csv', show_col_types = FALSE)
+```
+
+## Phase 5: XAI Analysis (Both Datasets)
+
+```{r}
+source('R/05_xai_explainability.R')
+list.files('outputs/xai')
+```
+
+## Phase 6: Error Analysis & Cross-Dataset Comparison
+
+```{r}
+metrics <- readr::read_csv('outputs/model_metrics_dual_dataset.csv', show_col_types = FALSE)
+fair <- readr::read_csv('outputs/fairness/fairness_metrics.csv', show_col_types = FALSE)
+list(metrics = metrics, fairness = fair)
+```
+
+The same DALC pipeline is validated on both datasets with per-dataset performance and fairness reporting.

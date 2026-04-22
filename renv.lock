@@ -1,0 +1,28 @@
+{
+  "R": {
+    "Version": "4.3.2",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://cloud.r-project.org"
+      }
+    ]
+  },
+  "Packages": {
+    "DALEX": {"Package": "DALEX", "Version": "2.5.2", "Source": "Repository", "Repository": "CRAN"},
+    "dplyr": {"Package": "dplyr", "Version": "1.1.4", "Source": "Repository", "Repository": "CRAN"},
+    "fairmodels": {"Package": "fairmodels", "Version": "1.2.1", "Source": "Repository", "Repository": "CRAN"},
+    "ggplot2": {"Package": "ggplot2", "Version": "3.5.1", "Source": "Repository", "Repository": "CRAN"},
+    "hardhat": {"Package": "hardhat", "Version": "1.4.1", "Source": "Repository", "Repository": "CRAN"},
+    "jsonlite": {"Package": "jsonlite", "Version": "1.8.8", "Source": "Repository", "Repository": "CRAN"},
+    "parsnip": {"Package": "parsnip", "Version": "1.2.1", "Source": "Repository", "Repository": "CRAN"},
+    "plumber": {"Package": "plumber", "Version": "1.2.2", "Source": "Repository", "Repository": "CRAN"},
+    "purrr": {"Package": "purrr", "Version": "1.0.2", "Source": "Repository", "Repository": "CRAN"},
+    "readr": {"Package": "readr", "Version": "2.1.5", "Source": "Repository", "Repository": "CRAN"},
+    "recipes": {"Package": "recipes", "Version": "1.0.10", "Source": "Repository", "Repository": "CRAN"},
+    "rsample": {"Package": "rsample", "Version": "1.2.1", "Source": "Repository", "Repository": "CRAN"},
+    "tidymodels": {"Package": "tidymodels", "Version": "1.2.0", "Source": "Repository", "Repository": "CRAN"},
+    "workflows": {"Package": "workflows", "Version": "1.1.4", "Source": "Repository", "Repository": "CRAN"},
+    "yardstick": {"Package": "yardstick", "Version": "1.3.1", "Source": "Repository", "Repository": "CRAN"}
+  }
+}

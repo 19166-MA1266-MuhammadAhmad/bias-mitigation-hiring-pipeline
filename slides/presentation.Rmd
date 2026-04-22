@@ -1,0 +1,73 @@
+---
+title: "Dual-Dataset Bias Mitigation in AI Hiring"
+author: "Muhammad Ahmad"
+output: ioslides_presentation
+---
+
+## Title
+Bias Mitigation Pipeline in AI-Driven Hiring Processes
+
+## Problem & Motivation
+- Hiring AI can encode bias
+- Need measurable mitigation with explainability
+
+## Literature Highlights
+- Fairness metrics and intervention foundations
+- 2025 ethical AI hiring updates
+
+## Methodology (DALC)
+- Data prep
+- EDA and bias detection
+- Reweighting-based modeling
+- Fairness evaluation
+- XAI and deployment
+
+## Dataset Overview (Side-by-Side)
+- **Dataset 1**: Synthetic Loan/Hiring Data (`final_bias_hiring_dataset.csv`) — injected bias experiments
+- **Dataset 2**: AI Hiring Bias Detection Kaggle (`data.csv`) — live performance validation
+
+## EDA Findings
+- Hiring rates by gender
+- Score distributions by gender
+- Correlation heatmaps per dataset
+
+## Model Results — Dataset 1
+- Baseline logistic vs mitigated models
+- Accuracy, AUC, F1
+
+## Model Results — Dataset 2
+- Baseline logistic vs mitigated models
+- Accuracy, AUC, F1
+
+## Comparative Results Table
+- Side-by-side model metrics across datasets
+
+## Fairness Metrics Before/After
+- Demographic parity
+- Equalized odds
+- Disparate impact ratio
+
+## XAI Findings
+- Feature importance
+- Break-down explanations
+- PDPs for key features
+
+## Live Demo Overview
+- Plumber API: `/health`, `/predict`, `/fairness_report`
+
+## UAE Relevance
+- Practical fairness governance for regional hiring contexts
+
+## Limitations & Future Work
+- Synthetic realism constraints
+- Single protected attribute
+- Multi-attribute fairness next
+
+## Conclusion
+Dual-dataset validation strengthens project credibility and applicability.
+
+## References
+Key references [1]–[12] from paper.
+
+## Q&A
+Thank you.

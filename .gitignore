@@ -1,0 +1,9 @@
+.Rhistory
+.RData
+.Rproj.user/
+renv/library/
+renv/staging/
+outputs/
+models/*.rds
+*.html
+*.pdf
