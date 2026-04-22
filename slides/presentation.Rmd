@@ -1,6 +1,6 @@
 ---
 title: "Dual-Dataset Bias Mitigation in AI Hiring"
-author: "Muhammad Ahmad"
+author: ""
 output: ioslides_presentation
 ---
 

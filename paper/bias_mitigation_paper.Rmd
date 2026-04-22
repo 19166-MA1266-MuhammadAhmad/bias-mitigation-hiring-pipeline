@@ -1,6 +1,6 @@
 ---
 title: "Bias Mitigation Pipeline in AI-Driven Hiring Processes: A Dual-Dataset R-Based DALC/MLOps Approach"
-author: "Muhammad Ahmad"
+author: ""
 output: rticles::ieee_article
 ---
 
