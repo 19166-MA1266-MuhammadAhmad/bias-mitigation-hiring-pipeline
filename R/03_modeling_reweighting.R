@@ -40,6 +40,13 @@ fit_models <- function(train_df, test_df, outcome_col, group_col, dataset_name) 
   weights <- compute_weights(train_df %>% mutate(!!outcome_col := as.integer(as.character(.data[[outcome_col]]))), group_col, outcome_col)
   w <- hardhat::importance_weights(weights)
 
+  train_w <- train_df %>% mutate(.case_weights = w)
+
+  rec_w <- recipe(as.formula(paste(outcome_col, '~ .')), data = train_w) %>%
+    step_dummy(all_nominal_predictors()) %>%
+    step_zv(all_predictors()) %>%
+    step_normalize(all_numeric_predictors())
+
   spec_logit <- logistic_reg() %>% set_engine('glm') %>% set_mode('classification')
   spec_rf <- rand_forest(trees = 300) %>% set_engine('ranger', importance = 'impurity') %>% set_mode('classification')
   spec_xgb <- boost_tree(trees = 300, tree_depth = 6, learn_rate = 0.05) %>% set_engine('xgboost') %>% set_mode('classification')
@@ -48,11 +55,15 @@ fit_models <- function(train_df, test_df, outcome_col, group_col, dataset_name) 
   wf_rf <- workflow() %>% add_recipe(rec) %>% add_model(spec_rf)
   wf_xgb <- workflow() %>% add_recipe(rec) %>% add_model(spec_xgb)
 
+  wf_logit_w <- workflow() %>% add_recipe(rec_w) %>% add_model(spec_logit) %>% add_case_weights(.case_weights)
+  wf_rf_w <- workflow() %>% add_recipe(rec_w) %>% add_model(spec_rf) %>% add_case_weights(.case_weights)
+  wf_xgb_w <- workflow() %>% add_recipe(rec_w) %>% add_model(spec_xgb) %>% add_case_weights(.case_weights)
+
   fitted <- list(
     baseline_logit = fit(wf_logit, data = train_df),
-    mitigated_logit = fit(wf_logit, data = train_df, case_weights = w),
-    mitigated_rf = fit(wf_rf, data = train_df, case_weights = w),
-    mitigated_xgb = fit(wf_xgb, data = train_df, case_weights = w)
+    mitigated_logit = fit(wf_logit_w, data = train_w),
+    mitigated_rf = fit(wf_rf_w, data = train_w),
+    mitigated_xgb = fit(wf_xgb_w, data = train_w)
   )
 
   score_model <- function(model, model_name) {

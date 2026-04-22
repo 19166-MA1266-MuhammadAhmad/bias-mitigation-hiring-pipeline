@@ -3,6 +3,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(yardstick)
   library(purrr)
+  library(workflows)
   library(DALEX)
 })
 
@@ -53,8 +54,8 @@ run_xai <- function(res, dataset_name, key_feature) {
   roc_all <- map2_dfr(res$models, names(res$models), function(m, nm) {
     probs <- predict(m, test_df, type = 'prob')$.pred_1
     truth <- factor(as.integer(as.character(test_df[[outcome]])), levels = c(0, 1))
-    roc_curve_vec <- yardstick::roc_curve_vec(truth = truth, estimate = probs, event_level = 'second')
-    bind_cols(tibble(model = nm, dataset = dataset_name), roc_curve_vec)
+    roc_df <- yardstick::roc_curve(tibble(.truth = truth, .prob = probs), .truth, .prob, event_level = 'second')
+    bind_cols(tibble(model = nm, dataset = dataset_name), roc_df)
   })
 
   write.csv(roc_all, file.path('outputs/xai', paste0('roc_overall_', gsub(' ', '_', tolower(dataset_name)), '.csv')), row.names = FALSE)
@@ -65,7 +66,7 @@ run_xai <- function(res, dataset_name, key_feature) {
     bind_rows(lapply(sort(unique(tmp$Gender)), function(g) {
       sub <- tmp %>% filter(Gender == g)
       truth <- factor(as.integer(as.character(sub[[outcome]])), levels = c(0, 1))
-      rc <- yardstick::roc_curve_vec(truth = truth, estimate = sub$prob, event_level = 'second')
+      rc <- yardstick::roc_curve(tibble(.truth = truth, .prob = sub$prob), .truth, .prob, event_level = 'second')
       bind_cols(tibble(model = nm, dataset = dataset_name, gender = g), rc)
     }))
   })

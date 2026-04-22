@@ -2,6 +2,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(readr)
   library(tibble)
+  library(workflows)
   library(DALEX)
   library(fairmodels)
 })
