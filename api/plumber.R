@@ -1,4 +1,4 @@
-# plumber API for dual-dataset prediction and fairness reporting
+# plumber API for three-dataset prediction and fairness reporting
 library(plumber)
 library(jsonlite)
 
@@ -11,12 +11,17 @@ load_workflow <- function(path) {
 
 model1 <- load_workflow('models/best_model_dataset1.rds')
 model2 <- load_workflow('models/best_model_dataset2.rds')
+model3 <- load_workflow('models/best_model_dataset3.rds')
 
 #* @get /health
 function() {
   list(
     status = 'ok',
-    models_loaded = list(dataset1 = !is.null(model1), dataset2 = !is.null(model2))
+    models_loaded = list(
+      dataset1 = !is.null(model1),
+      dataset2 = !is.null(model2),
+      dataset3 = !is.null(model3)
+    )
   )
 }
 
@@ -32,7 +37,9 @@ function(req, res) {
     return(list(error = 'Request body must contain "data" object.'))
   }
 
-  model <- if (tolower(dataset) %in% c('dataset1', '1')) model1 else model2
+  model <- if (tolower(dataset) %in% c('dataset1', '1')) model1
+           else if (tolower(dataset) %in% c('dataset3', '3')) model3
+           else model2
   if (is.null(model)) {
     res$status <- 503
     return(list(error = sprintf('Model not available for %s', dataset)))

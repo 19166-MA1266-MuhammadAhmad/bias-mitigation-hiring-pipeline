@@ -7,12 +7,15 @@ suppressPackageStartupMessages({
 
 dir.create('outputs/eda', recursive = TRUE, showWarnings = FALSE)
 
-if (!file.exists('data/prepared/dataset1_full.rds') || !file.exists('data/prepared/dataset2_full.rds')) {
+if (!file.exists('data/prepared/dataset1_full.rds') ||
+    !file.exists('data/prepared/dataset2_full.rds') ||
+    !file.exists('data/prepared/dataset3_full.rds')) {
   source('R/01_data_preparation.R')
 }
 
 dataset1 <- readRDS('data/prepared/dataset1_full.rds')
 dataset2 <- readRDS('data/prepared/dataset2_full.rds')
+dataset3 <- readRDS('data/prepared/dataset3_full.rds')
 
 calc_di <- function(df, gender_col, outcome_col) {
   rates <- df %>%
@@ -25,10 +28,12 @@ calc_di <- function(df, gender_col, outcome_col) {
 
 summary_d1 <- dataset1 %>% group_by(Gender) %>% summarise(across(where(is.numeric), mean), .groups = 'drop')
 summary_d2 <- dataset2 %>% group_by(Gender) %>% summarise(across(where(is.numeric), mean), .groups = 'drop')
+summary_d3 <- dataset3 %>% group_by(Gender) %>% summarise(across(where(is.numeric), mean), .groups = 'drop')
 
 rates <- bind_rows(
   dataset1 %>% group_by(Gender) %>% summarise(rate = mean(Final_Decision), .groups = 'drop') %>% mutate(dataset = 'Dataset 1'),
-  dataset2 %>% group_by(Gender) %>% summarise(rate = mean(HiringDecision), .groups = 'drop') %>% mutate(dataset = 'Dataset 2')
+  dataset2 %>% group_by(Gender) %>% summarise(rate = mean(HiringDecision), .groups = 'drop') %>% mutate(dataset = 'Dataset 2'),
+  dataset3 %>% group_by(Gender) %>% summarise(rate = mean(Employed), .groups = 'drop') %>% mutate(dataset = 'Dataset 3')
 )
 
 p_rates <- ggplot(rates, aes(x = factor(Gender), y = rate, fill = dataset)) +
@@ -40,16 +45,17 @@ ggsave('outputs/eda/hiring_rates_by_gender.png', p_rates, width = 9, height = 5)
 
 score_dist <- bind_rows(
   dataset1 %>% transmute(dataset = 'Dataset 1', Gender, score = Interview_Score),
-  dataset2 %>% transmute(dataset = 'Dataset 2', Gender, score = InterviewScore)
+  dataset2 %>% transmute(dataset = 'Dataset 2', Gender, score = InterviewScore),
+  dataset3 %>% transmute(dataset = 'Dataset 3', Gender, score = ComputerSkills)
 )
 
 p_scores <- ggplot(score_dist, aes(x = score, fill = factor(Gender))) +
   geom_density(alpha = 0.5) +
   facet_wrap(~dataset, scales = 'free') +
-  labs(title = 'Interview Score Distribution by Gender', fill = 'Gender') +
+  labs(title = 'Key Feature Distribution by Gender', fill = 'Gender') +
   theme_minimal()
 
-ggsave('outputs/eda/score_distribution_by_gender.png', p_scores, width = 9, height = 5)
+ggsave('outputs/eda/score_distribution_by_gender.png', p_scores, width = 12, height = 5)
 
 cor_plot <- function(df, name) {
   cor_df <- df %>% select(where(is.numeric))
@@ -61,14 +67,20 @@ cor_plot <- function(df, name) {
 
 cor_plot(dataset1, 'dataset1')
 cor_plot(dataset2, 'dataset2')
+cor_plot(dataset3, 'dataset3')
 
 bias_summary <- tibble(
-  dataset = c('Dataset 1', 'Dataset 2'),
-  disparate_impact = c(calc_di(dataset1, 'Gender', 'Final_Decision'), calc_di(dataset2, 'Gender', 'HiringDecision'))
+  dataset = c('Dataset 1', 'Dataset 2', 'Dataset 3'),
+  disparate_impact = c(
+    calc_di(dataset1, 'Gender', 'Final_Decision'),
+    calc_di(dataset2, 'Gender', 'HiringDecision'),
+    calc_di(dataset3, 'Gender', 'Employed')
+  )
 )
 
 write_csv(summary_d1, 'outputs/eda/summary_by_gender_dataset1.csv')
 write_csv(summary_d2, 'outputs/eda/summary_by_gender_dataset2.csv')
+write_csv(summary_d3, 'outputs/eda/summary_by_gender_dataset3.csv')
 write_csv(bias_summary, 'outputs/eda/disparate_impact_summary.csv')
 
-message('EDA and bias detection artifacts created for both datasets.')
+message('EDA and bias detection artifacts created for all three datasets.')

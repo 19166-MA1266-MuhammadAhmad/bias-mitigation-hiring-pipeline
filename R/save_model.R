@@ -3,7 +3,9 @@ suppressPackageStartupMessages({
   library(workflows)
 })
 
-if (!file.exists('models/model_results_dataset1.rds') || !file.exists('models/model_results_dataset2.rds')) {
+if (!file.exists('models/model_results_dataset1.rds') ||
+    !file.exists('models/model_results_dataset2.rds') ||
+    !file.exists('models/model_results_dataset3.rds')) {
   source('R/03_modeling_reweighting.R')
 }
 
@@ -11,10 +13,11 @@ dir.create('models', showWarnings = FALSE, recursive = TRUE)
 
 res1 <- readRDS('models/model_results_dataset1.rds')
 res2 <- readRDS('models/model_results_dataset2.rds')
+res3 <- readRDS('models/model_results_dataset3.rds')
 
 pick_best_mitigated <- function(res) {
   mitigated <- res$metrics %>%
-    filter(model %in% c('mitigated_logit', 'mitigated_rf', 'mitigated_xgb')) %>%
+    filter(model %in% c('mitigated_rf', 'mitigated_nb', 'mitigated_knn')) %>%
     arrange(desc(auc), desc(f1), desc(accuracy))
   best_name <- mitigated$model[[1]]
   res$models[[best_name]]
@@ -22,11 +25,14 @@ pick_best_mitigated <- function(res) {
 
 best1 <- pick_best_mitigated(res1)
 best2 <- pick_best_mitigated(res2)
+best3 <- pick_best_mitigated(res3)
 
 saveRDS(best1, 'models/best_model_dataset1.rds')
 saveRDS(best2, 'models/best_model_dataset2.rds')
+saveRDS(best3, 'models/best_model_dataset3.rds')
 
 saveRDS(workflows::extract_recipe(best1), 'models/recipe_dataset1.rds')
 saveRDS(workflows::extract_recipe(best2), 'models/recipe_dataset2.rds')
+saveRDS(workflows::extract_recipe(best3), 'models/recipe_dataset3.rds')
 
-message('Saved best mitigated models and recipes for both datasets.')
+message('Saved best mitigated models and recipes for all three datasets.')

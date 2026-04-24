@@ -7,3 +7,7 @@ outputs/
 models/*.rds
 *.html
 *.pdf
+slides/Bias_Mitigation_Presentation.pptx
+slides/create_pptx.py
+slides/speaking_notes.md
+slides/speaking_notes.md

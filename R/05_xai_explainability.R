@@ -9,12 +9,15 @@ suppressPackageStartupMessages({
 
 dir.create('outputs/xai', recursive = TRUE, showWarnings = FALSE)
 
-if (!file.exists('models/model_results_dataset1.rds') || !file.exists('models/model_results_dataset2.rds')) {
+if (!file.exists('models/model_results_dataset1.rds') ||
+    !file.exists('models/model_results_dataset2.rds') ||
+    !file.exists('models/model_results_dataset3.rds')) {
   source('R/03_modeling_reweighting.R')
 }
 
 res1 <- readRDS('models/model_results_dataset1.rds')
 res2 <- readRDS('models/model_results_dataset2.rds')
+res3 <- readRDS('models/model_results_dataset3.rds')
 
 get_explainer <- function(model, test_df, outcome) {
   x <- test_df %>% select(-all_of(outcome))
@@ -42,7 +45,7 @@ run_xai <- function(res, dataset_name, key_feature) {
 
   write.csv(im, file.path('outputs/xai', paste0('feature_importance_', gsub(' ', '_', tolower(dataset_name)), '.csv')), row.names = FALSE)
 
-  best_model <- res$models$mitigated_xgb
+  best_model <- res$models$mitigated_rf
   ex_best <- get_explainer(best_model, test_df, outcome)
 
   bd <- predict_parts(ex_best, new_observation = test_df[1, setdiff(names(test_df), outcome), drop = FALSE], type = 'break_down')
@@ -76,5 +79,6 @@ run_xai <- function(res, dataset_name, key_feature) {
 
 run_xai(res1, 'Dataset 1', 'Interview_Score')
 run_xai(res2, 'Dataset 2', 'InterviewScore')
+run_xai(res3, 'Dataset 3', 'ComputerSkills')
 
-message('XAI artifacts created for both datasets.')
+message('XAI artifacts created for all three datasets.')

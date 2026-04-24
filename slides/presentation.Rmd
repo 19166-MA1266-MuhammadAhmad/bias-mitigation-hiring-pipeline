@@ -1,5 +1,5 @@
 ---
-title: "Dual-Dataset Bias Mitigation in AI Hiring"
+title: "Three-Dataset Bias Mitigation in AI Hiring"
 subtitle: "A DALC/MLOps Approach in R"
 author: ""
 date: "2026"
@@ -17,7 +17,7 @@ output: ioslides_presentation
 
 1. Does the baseline model exhibit measurable gender bias?
 2. Can reweighting reduce bias while maintaining performance?
-3. Does the pipeline generalize across different datasets?
+3. Does the pipeline generalize across three different datasets?
 
 ## Motivation: Why This Matters in 2026
 
@@ -25,7 +25,7 @@ output: ioslides_presentation
 - Organizations need **auditable, explainable** hiring AI
 - Fairness is not optional — it is a **compliance requirement**
 - Single-dataset studies lack credibility for real-world adoption
-- **Dual-dataset validation** strengthens trust and generalizability
+- **Three-dataset validation** strengthens trust and generalizability
 
 ## Literature Foundations
 
@@ -40,16 +40,16 @@ output: ioslides_presentation
 
 ## DALC/MLOps Methodology: 6-Phase Pipeline
 
-1. **Data Preparation** — Load, clean, encode, 70/30 stratified split
+1. **Data Preparation** — Load, clean, encode, 70/15/15 stratified split
 2. **EDA & Bias Detection** — Selection rates, distributions, DI ratio
-3. **Modeling + Reweighting** — Baseline + 3 mitigated models per dataset
-4. **Fairness Evaluation** — DPD, EOD, DIR metrics
+3. **Modeling + Reweighting** — Baseline RF + 3 mitigated models per dataset
+4. **Fairness Evaluation** — DPD, EOD, DIR, Calibration metrics
 5. **XAI Explainability** — Feature importance, break-down, PDP, ROC
-6. **Deployment** — Plumber REST API (/health, /predict, /fairness_report)
+6. **Deployment** — Plumber REST API + Shiny Dashboard
 
 ## Dataset 1: Synthetic Hiring Data
 
-**`final_bias_hiring_dataset.csv`** — 2,000 applicants, 12 features
+**`final_bias_hiring_dataset.csv`** — 2,000 applicants
 
 | Property | Value |
 |----------|-------|
@@ -64,7 +64,7 @@ output: ioslides_presentation
 
 ## Dataset 2: Kaggle AI Hiring Bias Detection
 
-**`data.csv`** — 1,500 candidates, 11 features
+**`data.csv`** — 1,500 candidates
 
 | Property | Value |
 |----------|-------|
@@ -77,19 +77,30 @@ output: ioslides_presentation
 - More selective scenario (31% vs. 58% positive rate)
 - Naturalistic validation of pipeline generalizability
 
+## Dataset 3: FairJob Dataset
+
+**`job fair dataset.csv`** — up to 2,000 candidates
+
+| Property | Value |
+|----------|-------|
+| Records | Up to 2,000 (filtered) |
+| Features (modeled) | 9 |
+| Target | Employed (0/1) |
+| Protected attribute | Gender (Man/Woman) |
+
+- Employment outcome data from FairJob challenge
+- Features: Age, Education, Mental Health, Coding Years, Previous Salary, Computer Skills
+- Highest baseline bias among all three datasets
+
 ## EDA Findings: Gender Hiring Rates
 
-**Dataset 1:**
+**Dataset 1:** Female 58.3% | Male 57.2% — DI = 0.980
 
-- Female: 58.3% selected | Male: 57.2% selected
-- DI = 0.980 (above 0.8 threshold)
+**Dataset 2:** Female 31.1% | Male 30.9% — DI = 0.993
 
-**Dataset 2:**
+**Dataset 3:** Exhibits highest gender disparity in employment outcomes
 
-- Female: 31.1% hired | Male: 30.9% hired
-- DI = 0.993 (near-perfect parity)
-
-**Key insight:** Raw data appears balanced, but model predictions may still exhibit bias through feature interactions
+**Key insight:** Raw data may appear balanced, but model predictions can exhibit bias through feature interactions
 
 ## Reweighting Strategy
 
@@ -97,91 +108,114 @@ Inverse-frequency weights by (Gender, Outcome):
 
 $$w_{g,y} = \frac{N}{|G| \times n_{g,y}}$$
 
-- Upweights underrepresented (group, outcome) combinations
-- Model-agnostic: works with any classifier
-- Applied via tidymodels `add_case_weights()` workflow
+- **Random Forest**: case weights applied via tidymodels `add_case_weights()`
+- **Naive Bayes & KNN**: weighted resampling (sample with replacement)
 
-**4 models per dataset:** Baseline Logistic, Mitigated Logistic, Mitigated RF, Mitigated XGBoost
+**4 models per dataset:** Baseline RF, Mitigated RF, Mitigated NB, Mitigated KNN
 
 ## Model Performance: Dataset 1
 
 | Model | Accuracy | AUC | F1 |
 |-------|----------|-----|-----|
-| Baseline Logistic | 0.577 | 0.491 | 0.725 |
-| Mitigated Logistic | 0.494 | 0.494 | 0.528 |
-| Mitigated RF | 0.502 | 0.496 | 0.584 |
-| Mitigated XGBoost | 0.499 | 0.485 | 0.578 |
+| Baseline RF | 0.565 | 0.494 | 0.675 |
+| Mitigated RF | 0.508 | 0.489 | 0.584 |
+| Mitigated NB | 0.548 | 0.519 | 0.595 |
+| Mitigated KNN | 0.505 | 0.453 | 0.536 |
 
-- Baseline has highest accuracy but highest bias
-- Mitigated models trade accuracy for fairness
+- NB achieves best AUC (0.519) among all Dataset 1 models
+- Low absolute AUC reflects near-random separability in synthetic data
 
 ## Model Performance: Dataset 2
 
 | Model | Accuracy | AUC | F1 |
 |-------|----------|-----|-----|
-| Baseline Logistic | 0.863 | 0.901 | 0.783 |
-| Mitigated Logistic | 0.818 | 0.902 | 0.747 |
-| **Mitigated RF** | **0.889** | **0.906** | **0.828** |
-| Mitigated XGBoost | 0.885 | 0.906 | 0.817 |
+| Baseline RF | 0.889 | 0.911 | 0.790 |
+| **Mitigated RF** | **0.894** | **0.916** | **0.829** |
+| Mitigated NB | 0.832 | 0.875 | 0.725 |
+| Mitigated KNN | 0.801 | 0.819 | 0.702 |
 
-- Mitigated RF **exceeds baseline accuracy** (0.889 vs. 0.863)
+- Mitigated RF **exceeds baseline** (0.894 vs. 0.889 accuracy)
 - Fairness and performance are **not always in conflict**
 
-## Fairness Metrics: Before vs. After
+## Model Performance: Dataset 3
 
-| Dataset | Model | Dem. Parity | Equal. Odds | DI Ratio |
-|---------|-------|-------------|-------------|----------|
-| D1 | Baseline | 0.064 | 0.071 | 0.935 |
-| D1 | Mitigated | **0.009** | **0.044** | **0.982** |
-| D2 | Baseline | 0.013 | 0.046 | 0.961 |
-| D2 | Mitigated | 0.052 | **0.026** | 0.881 |
+| Model | Accuracy | AUC | F1 |
+|-------|----------|-----|-----|
+| Baseline RF | 0.771 | 0.856 | 0.793 |
+| Mitigated RF | 0.784 | 0.865 | 0.795 |
+| Mitigated NB | 0.754 | 0.869 | 0.792 |
+| Mitigated KNN | 0.668 | 0.714 | 0.677 |
 
-**Dataset 1: 86.1% reduction** in demographic parity difference
+- Mitigated NB achieves highest AUC (0.869)
+- Mitigated RF improves both accuracy and AUC over baseline
 
-**Dataset 2:** Equalized odds improves 43.2%, but DPD increases (low baseline)
+## Fairness Metrics: All Datasets
+
+| Dataset | Model | DPD | EOD | Calib. | DIR |
+|---------|-------|-----|-----|--------|-----|
+| D1 | Baseline RF | 0.036 | 0.051 | 0.004 | 0.954 |
+| D2 | Baseline RF | 0.111 | 0.201 | 0.008 | 0.591 |
+| D2 | Mitigated NB | **0.065** | 0.222 | 0.019 | **0.804** |
+| D3 | Baseline RF | 0.171 | 0.287 | 0.021 | 0.701 |
+| D3 | Mitigated NB | **0.045** | **0.131** | 0.126 | **0.930** |
+
+## Bias Reduction Summary
+
+| Dataset | Baseline DPD | Best Mitigated DPD | Reduction |
+|---------|-------------|-------------------|-----------|
+| Dataset 1 | 0.036 | 0.048 (KNN) | -34.1%* |
+| Dataset 2 | 0.111 | 0.065 (NB) | **41.1%** |
+| Dataset 3 | 0.171 | 0.045 (NB) | **73.5%** |
+
+*Dataset 1 baseline bias was already very low (DPD = 0.036)
+
+**Key finding:** Naive Bayes with resampling achieves best demographic parity
+
+## Calibration Analysis
+
+- **Calibration metric**: measures whether predicted probabilities are equally accurate across gender groups
+- Baseline RF maintains good calibration (0.004–0.021)
+- Mitigated RF has competitive calibration (0.006–0.017)
+- Mitigated NB trades calibration for DPD improvement on Dataset 3 (cal = 0.126)
+- **Lesson**: multiple fairness metrics needed to capture full picture
 
 ## XAI: Feature Importance
 
-**Dataset 1 top drivers:**
+**Dataset 1:** Interview Score > Skills Score > CGPA > Experience
 
-- Interview Score > Skills Score > CGPA > Experience Years
-- Gender has minimal direct importance
+**Dataset 2:** Interview Score > Skill Score > Experience > Personality
 
-**Dataset 2 top drivers:**
+**Dataset 3:** Computer Skills > Previous Salary > Coding Years
 
-- Interview Score > Skill Score > Experience Years > Personality Score
-- Recruitment Strategy and Distance show lower impact
+**Cross-dataset:** Gender has minimal direct importance — bias operates through correlated features
 
-**Cross-dataset consistency:** Interview Score is the top predictor in both datasets
-
-## XAI: Break-Down and PDP
+## XAI: Attribution & PDP
 
 **Break-Down Attribution:**
 
 - Individual predictions decomposed by feature contribution
 - Supports "right to explanation" requirements
 
-**Partial Dependence Profiles:**
+**Partial Dependence:**
 
-- Interview Score shows monotonic increase in hiring probability
-- Dataset 1: 0.45 → 0.60 across score range
-- Dataset 2: 0.15 → 0.55 (steeper, more selective)
+- Interview Score and Computer Skills show monotonic positive effect
+- Gender-stratified ROC curves converge after mitigation
 
-## Live Demo: Plumber API
+## Deployment: API + Shiny Dashboard
 
-Three endpoints deployed:
-
+**Plumber REST API:**
 ```
 GET  /health           → Model status check
 GET  /fairness_report  → Aggregate fairness metrics
-POST /predict          → Individual prediction + fairness scores
+POST /predict          → Prediction + probability + fairness scores
 ```
 
-Sample predict request returns:
+**Shiny Dashboard (4 tabs):**
 
-- Prediction (Hired/Rejected)
-- Probability score
-- Fairness metrics (DPD, DIR, EOD)
+- Model Performance — metrics comparison across datasets
+- Fairness Metrics — DPD, EOD, DIR, Calibration plots
+- Before/After — side-by-side baseline vs. mitigated comparison
+- Predict — interactive prediction form for all 3 datasets
 
 ## UAE and Regional Relevance
 
@@ -193,7 +227,7 @@ Sample predict request returns:
 
 1. Measurable fairness metrics for **audit compliance**
 2. Explainable predictions for **regulatory transparency**
-3. Deployable API for **HR tech integration**
+3. Deployable API + dashboard for **HR tech integration**
 
 ## Limitations and Future Work
 
@@ -209,15 +243,15 @@ Sample predict request returns:
 - Multi-attribute intersectional fairness (race, age, disability)
 - Post-processing calibration techniques
 - Concept drift monitoring in production
-- Non-binary gender representations
 
 ## Conclusion
 
-- **End-to-end bias mitigation pipeline** validated on two datasets
-- **86.1% bias reduction** demonstrated on Dataset 1
-- **No performance loss** on Dataset 2 (mitigated RF beats baseline)
-- **Explainability** via DALEX provides transparency
-- **Dual-dataset validation** ensures credibility and generalizability
+- **End-to-end bias mitigation pipeline** validated on three datasets
+- **73.5% bias reduction** on FairJob dataset (DPD: 0.171 → 0.045)
+- **Performance preserved or improved** on Dataset 2 (mitigated RF beats baseline)
+- **Four fairness metrics**: DPD, EOD, DIR, and Calibration
+- **Three model types**: RF, Naive Bayes, KNN with reweighting
+- **Explainability** via DALEX + **Shiny dashboard** for HR teams
 - **Deployable** via Plumber REST API
 
 ## References

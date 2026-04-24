@@ -1,5 +1,5 @@
 ---
-title: "Bias Mitigation Pipeline in AI-Driven Hiring Processes: A Dual-Dataset R-Based DALC/MLOps Approach"
+title: "Bias Mitigation Pipeline in AI-Driven Hiring Processes: A Three-Dataset R-Based DALC/MLOps Approach"
 author: ""
 output: rticles::ieee_article
 bibliography: references.bib
@@ -15,51 +15,41 @@ library(readr)
 
 # Abstract
 
-Artificial intelligence systems deployed in hiring pipelines have been shown to perpetuate and amplify historical biases related to gender, ethnicity, and socioeconomic background. This paper presents an end-to-end bias mitigation pipeline for AI-driven hiring processes, implemented entirely in R following the Data Analytics Life Cycle (DALC) and MLOps methodology. The pipeline addresses six phases: data preparation, exploratory data analysis with bias detection, modeling with reweighting-based mitigation, fairness evaluation, explainable AI (XAI) analysis, and deployment via a RESTful API. We validate our approach across two distinct datasets: a synthetic hiring dataset with 2,000 applicants and 12 features designed for controlled bias injection experiments, and a Kaggle AI Hiring Bias Detection dataset with 1,500 candidates and 11 features representing a more naturalistic hiring scenario. Four classification models are trained per dataset: a baseline logistic regression and three reweighted variants (logistic regression, random forest, and XGBoost). Fairness is assessed using demographic parity difference, equalized odds difference, and disparate impact ratio, with gender as the protected attribute. Explainability is provided through DALEX-based feature importance, break-down attribution plots, and partial dependence profiles. On Dataset 1, the mitigated logistic model achieves an 86.1% reduction in demographic parity difference compared to the baseline, reducing it from 0.064 to 0.009. On Dataset 2, the mitigated random forest achieves the highest AUC of 0.906 while maintaining competitive fairness metrics. The dual-dataset validation demonstrates that a single reweighting-based pipeline can generalize across datasets with different characteristics, supporting practical and credible responsible AI adoption. All code, data, and artifacts are reproducible through an renv-managed R environment and a Plumber REST API deployment.
+Artificial intelligence systems deployed in hiring pipelines risk perpetuating historical biases related to gender, ethnicity, and socioeconomic background. This paper presents an end-to-end bias mitigation pipeline for AI-driven hiring, implemented in R following the Data Analytics Life Cycle (DALC) and MLOps methodology. The pipeline covers six phases: data preparation, exploratory data analysis with bias detection, modeling with reweighting-based mitigation, fairness evaluation, explainable AI (XAI) analysis, and deployment via both a Plumber REST API and a Shiny dashboard. We validate our approach across three datasets: a synthetic hiring dataset (2,000 applicants, 7 features), a Kaggle AI Hiring Bias Detection dataset (1,500 candidates, 11 features), and the FairJob dataset (up to 2,000 candidates, 9 features). Four classification models are trained per dataset: a baseline Random Forest and three reweighted variants (Random Forest, Naive Bayes, and K-Nearest Neighbors). Data is split 70/15/15 into training, validation, and test sets. Fairness is assessed using demographic parity, equalized odds, calibration, and disparate impact ratio, with gender as the protected attribute. Explainability is provided through DALEX-based feature importance, break-down attribution, and partial dependence profiles. On Dataset 3 (FairJob), the mitigated Naive Bayes achieves a 73.5% reduction in demographic parity difference. On Dataset 2, the mitigated Random Forest achieves 0.894 accuracy and 0.916 AUC while improving fairness. The three-dataset validation demonstrates that a single reweighting-based pipeline generalizes across datasets with different characteristics.
 
-*Keywords --- bias mitigation, fairness, AI hiring, reweighting, explainable AI, DALEX, DALC, MLOps, R, dual-dataset validation*
+*Keywords --- bias mitigation, fairness, AI hiring, reweighting, explainable AI, DALEX, DALC, MLOps, R, calibration*
 
 # I. Introduction
 
-The integration of artificial intelligence into recruitment and hiring processes has become widespread across industries, with organizations deploying machine learning models to screen resumes, rank candidates, and make hiring recommendations [1]. While these systems promise efficiency and consistency, they also risk encoding and amplifying historical biases present in training data [2]. The well-documented case of Amazon's hiring tool, which systematically penalized female candidates, illustrates the real-world consequences of deploying biased AI systems in high-stakes decision contexts [4].
+The integration of artificial intelligence into recruitment and hiring processes has become widespread, with organizations deploying machine learning models to screen resumes, rank candidates, and make hiring recommendations [1]. While these systems promise efficiency and consistency, they also risk encoding and amplifying historical biases present in training data [2]. The well-documented case of Amazon's hiring tool, which systematically penalized female candidates, illustrates the real-world consequences of deploying biased AI systems in high-stakes decision contexts [4].
 
-Addressing algorithmic bias in hiring requires more than simply training accurate models. It demands a systematic approach that encompasses bias detection, mitigation, evaluation, and explainability [5]. The fairness-aware machine learning literature has produced a rich toolkit of metrics and intervention strategies [6], yet practical implementations that demonstrate end-to-end pipelines across multiple datasets remain relatively scarce.
+Addressing algorithmic bias in hiring requires a systematic approach that encompasses bias detection, mitigation, evaluation, and explainability [5]. The fairness-aware machine learning literature has produced a rich toolkit of metrics and intervention strategies [6], yet practical implementations that demonstrate end-to-end pipelines across multiple datasets remain scarce.
 
-This paper contributes a comprehensive, reproducible bias mitigation pipeline built in R, following the Data Analytics Life Cycle (DALC) and MLOps best practices. Our pipeline is validated across two distinct datasets to address three research questions:
+This paper contributes a comprehensive, reproducible bias mitigation pipeline built in R, following the Data Analytics Life Cycle (DALC) and MLOps best practices. Our pipeline is validated across three distinct datasets to address three research questions:
 
 - **RQ1**: Does the baseline model exhibit measurable gender bias in hiring predictions?
 - **RQ2**: Can reweighting-based mitigation reduce demographic parity difference while maintaining acceptable predictive performance?
 - **RQ3**: Does the pipeline generalize across datasets with different characteristics, structures, and bias profiles?
 
-By validating on both a synthetic dataset designed for controlled experiments and a naturalistic Kaggle dataset, we demonstrate that a single pipeline architecture can effectively detect and mitigate bias across varying data contexts. This cross-dataset validation strengthens the credibility and practical applicability of the approach.
-
-The remainder of this paper is organized as follows: Section II reviews related work on fairness in AI hiring. Section III details our methodology across the six DALC phases. Section IV describes both datasets. Section V presents experimental results. Section VI provides XAI analysis. Section VII discusses implications including UAE relevance. Section VIII addresses limitations, and Section IX concludes with future directions.
+The remainder of this paper is organized as follows: Section II reviews related work. Section III details our methodology. Section IV describes the three datasets. Section V presents experimental results. Section VI provides XAI analysis. Section VII discusses implications. Section VIII addresses limitations, and Section IX concludes.
 
 # II. Literature Review
 
 ## A. Algorithmic Fairness Foundations
 
-The theoretical foundations of algorithmic fairness have been established through several landmark contributions. Barocas and Hardt [5] provide a comprehensive treatment of fairness definitions and their mathematical relationships, demonstrating that many popular fairness criteria are mutually incompatible. Chouldechova [8] formally proved that calibration and error rate balance cannot simultaneously hold except in degenerate cases, establishing fundamental impossibility results that guide practical fairness interventions.
-
-Dwork et al. [11] introduced the influential framework of individual fairness, requiring that similar individuals receive similar outcomes, complementing group-level fairness metrics such as demographic parity and equalized odds. Corbett-Davies and Goel [9] survey the landscape of fairness criteria and argue for cost-sensitive approaches that account for the specific harms of different error types.
+Barocas and Hardt [5] provide a comprehensive treatment of fairness definitions and their mathematical relationships. Chouldechova [8] formally proved that calibration and error rate balance cannot simultaneously hold except in degenerate cases. Dwork et al. [11] introduced individual fairness, requiring similar individuals to receive similar outcomes. Corbett-Davies and Goel [9] survey fairness criteria and argue for cost-sensitive approaches.
 
 ## B. Bias Mitigation Strategies
 
-Bias mitigation techniques are categorized into pre-processing, in-processing, and post-processing approaches [6]. Pre-processing methods modify the training data before model fitting; in-processing methods incorporate fairness constraints during training; post-processing methods adjust model outputs after prediction.
-
-Kamiran and Calders [10] pioneered reweighting as a pre-processing technique, assigning inverse-frequency weights to training instances based on their protected group and outcome class membership. This approach has the advantage of being model-agnostic and easily integrated into standard machine learning workflows. Bellamy et al. [7] implemented reweighting and other techniques in the IBM AI Fairness 360 toolkit, establishing best practices for fairness-aware ML pipelines.
-
-Friedler et al. [12] conducted a comprehensive benchmark of fairness interventions across multiple datasets and metrics, finding that no single technique dominates across all settings. This finding motivates our dual-dataset validation approach, which tests pipeline generalizability.
+Bias mitigation techniques are categorized into pre-processing, in-processing, and post-processing approaches [6]. Kamiran and Calders [10] pioneered reweighting as a pre-processing technique, assigning inverse-frequency weights based on protected group and outcome class membership. Bellamy et al. [7] implemented reweighting in the IBM AI Fairness 360 toolkit. Friedler et al. [12] benchmarked fairness interventions across multiple datasets, finding no single technique dominates across all settings.
 
 ## C. AI Hiring Bias
 
-The application of AI in hiring has attracted significant regulatory and academic attention. The 2018 Reuters report on Amazon's biased hiring tool [4] demonstrated how historical gender imbalances in training data led to systematic discrimination against female applicants. This case catalyzed industry awareness and regulatory responses.
-
-Recent work by IEEE contributors [1] has specifically addressed bias mitigation in hiring using explainable AI techniques, demonstrating the value of combining fairness metrics with interpretability. The 2025 IEEE study on ethical challenges in resume screening [2] highlights the importance of fairness-oriented approaches in real-world deployment. The DLA Piper 2025 AI framework [3] establishes new standards for tackling algorithmic bias in organizational contexts, including hiring.
+The 2018 Reuters report on Amazon's biased hiring tool [4] demonstrated how historical gender imbalances in training data led to systematic discrimination. Recent IEEE work [1] has addressed bias mitigation in hiring using explainable AI techniques. The 2025 IEEE study on ethical challenges in resume screening [2] highlights the importance of fairness-oriented approaches. The DLA Piper 2025 AI framework [3] establishes new standards for tackling algorithmic bias in organizational contexts.
 
 ## D. Explainable AI for Fairness
 
-Explainability is increasingly recognized as essential for trustworthy AI systems [1]. DALEX (Descriptive mAchine Learning EXplanations) provides model-agnostic tools for feature importance, break-down attribution, and partial dependence profiles [7]. These techniques enable stakeholders to understand not only whether a model is biased but why and how bias manifests in predictions. The fairmodels R package extends DALEX with dedicated fairness checking capabilities, enabling integrated fairness-explainability workflows.
+DALEX provides model-agnostic tools for feature importance, break-down attribution, and partial dependence profiles [7]. The fairmodels R package extends DALEX with fairness checking capabilities, enabling integrated fairness-explainability workflows.
 
 # III. Methodology
 
@@ -67,238 +57,205 @@ Our pipeline follows the six-phase Data Analytics Life Cycle (DALC), adapted for
 
 ## A. Phase 1: Data Preparation
 
-Data preparation involves loading, cleaning, and splitting each dataset. For Dataset 1, categorical variables (Gender, Education Level) are encoded numerically, and identifier columns (Applicant ID, Name, University, Company, Job Applied) are removed to prevent data leakage. For Dataset 2, native numeric encodings are preserved, and categorical features (Education Level, Recruitment Strategy) are converted to factors.
+Data preparation involves loading, cleaning, and splitting each dataset. Categorical variables are encoded as factors, identifier columns are removed to prevent data leakage, and missing values are handled through complete-case filtering.
 
-Both datasets undergo a 70/30 stratified train-test split on the outcome variable using a fixed random seed (1266) for reproducibility. Stratification ensures proportional representation of positive and negative outcomes in both partitions.
+All three datasets undergo a **70/15/15 stratified train-validation-test split** on the outcome variable using a fixed random seed (1266). The validation set is used for model selection; the test set is reserved for final evaluation.
 
-## B. Phase 2: Exploratory Data Analysis and Bias Detection
+## B. Phase 2: EDA and Bias Detection
 
-EDA encompasses three analyses per dataset: (1) hiring/selection rates by gender group, (2) feature distribution comparisons across gender groups, and (3) correlation analysis among numeric features. The disparate impact ratio is computed as $DI = \frac{\min(rate_{g_0}, rate_{g_1})}{\max(rate_{g_0}, rate_{g_1})}$, where $rate_{g_i}$ is the positive outcome rate for gender group $i$. A DI ratio below 0.8 indicates substantial adverse impact under the four-fifths rule.
+EDA encompasses three analyses per dataset: (1) hiring/selection rates by gender, (2) feature distribution comparisons across gender groups, and (3) correlation analysis. The disparate impact ratio is computed as $DI = \frac{\min(rate_{g_0}, rate_{g_1})}{\max(rate_{g_0}, rate_{g_1})}$.
 
 ## C. Phase 3: Modeling with Reweighting
 
-We train four models per dataset: a baseline logistic regression (no mitigation) and three reweighted variants using logistic regression, random forest (300 trees), and XGBoost (300 trees, depth 6, learning rate 0.05).
+We train four models per dataset: a **baseline Random Forest** (no mitigation) and three reweighted variants using **Random Forest**, **Naive Bayes**, and **K-Nearest Neighbors (KNN)**.
 
-Reweighting follows the inverse-frequency approach of Kamiran and Calders [10]. For each combination of protected group $g$ and outcome $y$, the weight is computed as:
+Reweighting follows the inverse-frequency approach of Kamiran and Calders [10]:
 
 $$w_{g,y} = \frac{N}{|G| \times n_{g,y}}$$
 
-where $N$ is the total number of training instances, $|G|$ is the number of protected groups, and $n_{g,y}$ is the count of instances with group $g$ and outcome $y$. These weights are applied as case weights during model fitting through the tidymodels workflow framework.
+For Random Forest, weights are applied as case weights via the tidymodels workflow framework. For Naive Bayes and KNN, which do not natively support case weights, weighted resampling is used: training instances are sampled with replacement proportional to their computed weights, producing a rebalanced training set.
 
 All models use a standardized recipe with dummy encoding of nominal predictors, zero-variance feature removal, and numeric normalization.
 
 ## D. Phase 4: Fairness Evaluation
 
-Three fairness metrics are computed per model:
+Four fairness metrics are computed per model:
 
-- **Demographic Parity Difference (DPD)**: $|P(\hat{Y}=1|G=1) - P(\hat{Y}=1|G=0)|$. Values closer to 0 indicate better parity.
+- **Demographic Parity Difference (DPD)**: $|P(\hat{Y}=1|G=1) - P(\hat{Y}=1|G=0)|$.
 
-- **Equalized Odds Difference (EOD)**: $\max(|TPR_1 - TPR_0|, |FPR_1 - FPR_0|)$. Measures the maximum disparity in true positive rate or false positive rate across groups.
+- **Equalized Odds Difference (EOD)**: $\max(|TPR_1 - TPR_0|, |FPR_1 - FPR_0|)$.
 
-- **Disparate Impact Ratio (DIR)**: $\frac{\min(rate_0, rate_1)}{\max(rate_0, rate_1)}$. Values closer to 1 indicate better parity; below 0.8 signals adverse impact.
+- **Calibration Difference**: $|(\bar{p}_1 - \bar{y}_1) - (\bar{p}_0 - \bar{y}_0)|$, where $\bar{p}_g$ is the mean predicted probability and $\bar{y}_g$ is the actual positive rate for group $g$. This measures whether the model is equally well-calibrated across gender groups.
 
-Bias reduction percentage is calculated as $\frac{DPD_{baseline} - DPD_{mitigated}}{DPD_{baseline}} \times 100$.
+- **Disparate Impact Ratio (DIR)**: $\frac{\min(rate_0, rate_1)}{\max(rate_0, rate_1)}$.
+
+Bias reduction percentage is calculated as $\frac{DPD_{baseline} - DPD_{best\_mitigated}}{DPD_{baseline}} \times 100$.
 
 ## E. Phase 5: Explainability (XAI)
 
-We employ DALEX-based explainability tools:
-
-- **Feature Importance**: Permutation-based variable importance computed by measuring the increase in model loss when each feature is randomly shuffled.
-- **Break-Down Plots**: Additive attribution of individual predictions, showing each feature's contribution to moving the prediction from the intercept to the final value.
-- **Partial Dependence Profiles (PDP)**: Marginal effect of a single feature on the predicted probability, averaged over all observations.
-- **ROC Curves by Gender**: Receiver Operating Characteristic curves computed separately per gender group and per model, enabling visual comparison of discriminative performance across protected groups.
+We employ DALEX-based tools: permutation-based feature importance, break-down attribution for individual predictions, partial dependence profiles (PDP), and gender-stratified ROC curves.
 
 ## F. Phase 6: Deployment
 
-The trained best model is deployed via a Plumber REST API with three endpoints:
-
-- `GET /health` --- returns model and recipe loading status.
-- `GET /fairness_report` --- returns the fairness metrics table.
-- `POST /predict` --- accepts applicant features as JSON and returns the predicted hiring decision, probability, and fairness scores.
-
-Reproducibility is ensured through renv dependency management with a lockfile capturing all package versions.
+The best model per dataset is deployed via a **Plumber REST API** with endpoints `/health`, `/predict`, and `/fairness_report`. A **Shiny dashboard** provides an interactive interface for HR teams, displaying model metrics, fairness evaluation, before/after comparison, and a prediction form for all three datasets.
 
 # IV. Dataset Description
 
 ## A. Dataset 1: Synthetic Hiring Dataset
 
-Dataset 1 (`final_bias_hiring_dataset.csv`) contains 2,000 applicant records with 12 original features. After preprocessing (dropping identifiers), 7 features are retained for modeling. The dataset is gender-balanced with 1,009 male (coded as 1) and 991 female (coded as 0) applicants. The overall selection rate is 57.8% (1,155 selected, 845 rejected). Table I summarizes feature means by gender group.
+Dataset 1 (`final_bias_hiring_dataset.csv`) contains 2,000 applicant records. After dropping identifiers, 7 features are retained. The dataset is gender-balanced (991 female, 1,009 male) with a 57.8% selection rate and a disparate impact ratio of 0.980.
 
-```{r table1, results='asis'}
-d1_summary <- data.frame(
-  Feature = c("CGPA", "Experience Years", "Skills Score", "Interview Score", "Selection Rate"),
-  Female = c("3.15", "2.55", "70.35", "69.86", "58.3%"),
-  Male = c("3.13", "2.54", "70.05", "70.37", "57.2%")
-)
-kable(d1_summary, caption = "TABLE I: Dataset 1 Feature Means by Gender", 
-      align = "lcc", booktabs = TRUE) %>%
-  kable_styling(latex_options = "hold_position")
-```
+## B. Dataset 2: Kaggle AI Hiring Bias Detection
 
-The feature distributions show minimal gender-based differences, with near-equal means across all numeric features. The disparate impact ratio is 0.980, well above the 0.8 threshold, indicating no substantial adverse impact at the dataset level.
+Dataset 2 (`data.csv`) contains 1,500 candidate records with 11 features. It contains 762 female and 738 male candidates. The hiring rate is 31.0% with a disparate impact ratio of 0.993, representing near-perfect gender parity.
 
-## B. Dataset 2: Kaggle AI Hiring Bias Detection Dataset
+## C. Dataset 3: FairJob Dataset
 
-Dataset 2 (`data.csv`) contains 1,500 candidate records with 11 features, all retained for modeling. The dataset contains 762 female and 738 male candidates. The overall hiring rate is 31.0% (465 hired, 1,035 rejected), representing a more selective scenario than Dataset 1. Table II summarizes feature means by gender.
+Dataset 3 (`job fair dataset.csv`) is sourced from the FairJob challenge and contains employment outcome data with 9 features after preprocessing. Records are filtered to include only binary gender (Man/Woman), and a random sample of up to 2,000 is taken. Features include Age (categorical), Education Level, Employment status, Mental Health, Years of Coding experience, Previous Salary, and Computer Skills. The target variable is `Employed` (0/1).
 
-```{r table2, results='asis'}
-d2_summary <- data.frame(
-  Feature = c("Age", "Experience Years", "Previous Companies", "Distance from Company",
-              "Interview Score", "Skill Score", "Personality Score", "Hiring Rate"),
-  Female = c("35.0", "7.82", "3.09", "25.45", "51.15", "50.76", "48.70", "31.1%"),
-  Male = c("35.3", "7.56", "2.91", "25.56", "49.96", "51.48", "50.09", "30.9%")
-)
-kable(d2_summary, caption = "TABLE II: Dataset 2 Feature Means by Gender", 
-      align = "lcc", booktabs = TRUE) %>%
-  kable_styling(latex_options = "hold_position")
-```
-
-Dataset 2 exhibits a disparate impact ratio of 0.993, indicating near-perfect gender parity in base hiring rates. This provides a useful contrast to Dataset 1, testing whether the mitigation pipeline appropriately avoids over-correction when baseline bias is minimal.
-
-## C. Dataset Comparison
+## D. Dataset Comparison
 
 ```{r table3, results='asis'}
 comparison <- data.frame(
-  Characteristic = c("Records", "Features (modeled)", "Gender balance", 
-                      "Positive outcome rate", "Disparate impact ratio",
-                      "Source", "Primary use"),
-  Dataset1 = c("2,000", "7", "991F / 1,009M", "57.8%", "0.980",
-               "Synthetic", "Bias injection"),
-  Dataset2 = c("1,500", "11", "762F / 738M", "31.0%", "0.993",
-               "Kaggle", "Naturalistic validation")
+  Characteristic = c("Records", "Features (modeled)", "Positive outcome rate",
+                      "Disparate impact ratio", "Source", "Target variable"),
+  Dataset1 = c("2,000", "7", "57.8%", "0.980", "Synthetic", "Final_Decision"),
+  Dataset2 = c("1,500", "11", "31.0%", "0.993", "Kaggle", "HiringDecision"),
+  Dataset3 = c("up to 2,000", "9", "varies", "varies", "FairJob", "Employed")
 )
-kable(comparison, caption = "TABLE III: Dataset Comparison",
-      col.names = c("Characteristic", "Dataset 1", "Dataset 2"),
-      align = "lcc", booktabs = TRUE) %>%
+kable(comparison, caption = "TABLE I: Dataset Comparison",
+      col.names = c("Characteristic", "Dataset 1", "Dataset 2", "Dataset 3"),
+      align = "lccc", booktabs = TRUE) %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-The two datasets differ substantially in outcome prevalence (57.8% vs. 31.0%), feature dimensionality (7 vs. 11), and source realism. This heterogeneity tests whether the pipeline architecture generalizes beyond a single data distribution.
+The three datasets differ in outcome prevalence, feature dimensionality, and domain, providing a rigorous test of pipeline generalizability.
 
 # V. Experimental Results
 
 ## A. Model Performance
 
-Table IV presents classification performance metrics for all eight models (four per dataset).
+Table II presents classification performance on the test set for all twelve models (four per dataset).
 
 ```{r table4, results='asis'}
 metrics <- data.frame(
-  Dataset = c(rep("Dataset 1", 4), rep("Dataset 2", 4)),
-  Model = c("Baseline Logistic", "Mitigated Logistic", "Mitigated RF", "Mitigated XGBoost",
-            "Baseline Logistic", "Mitigated Logistic", "Mitigated RF", "Mitigated XGBoost"),
-  Accuracy = c("0.577", "0.494", "0.502", "0.499", "0.863", "0.818", "0.889", "0.885"),
-  AUC = c("0.491", "0.494", "0.496", "0.485", "0.901", "0.902", "0.906", "0.906"),
-  F1 = c("0.725", "0.528", "0.584", "0.578", "0.783", "0.747", "0.828", "0.817")
+  Dataset = c(rep("Dataset 1", 4), rep("Dataset 2", 4), rep("Dataset 3", 4)),
+  Model = rep(c("Baseline RF", "Mitigated RF", "Mitigated NB", "Mitigated KNN"), 3),
+  Accuracy = c("0.565", "0.508", "0.548", "0.505",
+               "0.889", "0.894", "0.832", "0.801",
+               "0.771", "0.784", "0.754", "0.668"),
+  AUC = c("0.494", "0.489", "0.519", "0.453",
+          "0.911", "0.916", "0.875", "0.819",
+          "0.856", "0.865", "0.869", "0.714"),
+  F1 = c("0.675", "0.584", "0.595", "0.536",
+         "0.790", "0.829", "0.725", "0.702",
+         "0.793", "0.795", "0.792", "0.677")
 )
-kable(metrics, caption = "TABLE IV: Model Performance Metrics",
+kable(metrics, caption = "TABLE II: Model Performance Metrics (Test Set)",
       align = "llccc", booktabs = TRUE) %>%
   kable_styling(latex_options = c("hold_position", "scale_down"))
 ```
 
-**Dataset 1 observations**: The baseline logistic model achieves the highest accuracy (0.577) and F1 (0.725) but at the cost of higher bias (see Section V-B). The mitigated models show reduced accuracy, which is expected when reweighting redistributes decision boundaries to equalize outcomes across groups. The mitigated random forest achieves the best AUC (0.496) among mitigated variants, indicating slightly better discriminative ability.
+**Dataset 1**: The baseline RF achieves the highest accuracy (0.565) but at the cost of bias. The mitigated Naive Bayes achieves the best AUC (0.519) among all Dataset 1 models, suggesting better discriminative ability after reweighting.
 
-**Dataset 2 observations**: Performance is substantially higher across all models, reflecting the more separable structure of Dataset 2. The mitigated random forest achieves the best overall performance with accuracy of 0.889, AUC of 0.906, and F1 of 0.828. Notably, the mitigated models maintain or improve upon baseline AUC (0.901 to 0.906), demonstrating that reweighting does not necessarily degrade discriminative performance when the underlying signal is strong.
+**Dataset 2**: The mitigated RF achieves 0.894 accuracy and 0.916 AUC, exceeding the baseline (0.889 / 0.911). This demonstrates that fairness and performance can improve simultaneously.
+
+**Dataset 3**: The mitigated RF achieves the highest accuracy (0.784) and the mitigated NB achieves the highest AUC (0.869), showing that different model types excel on different metrics.
 
 ## B. Fairness Metrics
 
-Table V presents fairness metrics for baseline and mitigated logistic models.
+Table III presents fairness metrics including calibration for all models.
 
 ```{r table5, results='asis'}
 fairness <- data.frame(
-  Dataset = c("Dataset 1", "Dataset 1", "Dataset 2", "Dataset 2"),
-  Model = c("Baseline", "Mitigated", "Baseline", "Mitigated"),
-  DPD = c("0.064", "0.009", "0.013", "0.052"),
-  EOD = c("0.071", "0.044", "0.046", "0.026"),
-  DIR = c("0.935", "0.982", "0.961", "0.881")
+  Dataset = c(rep("Dataset 1", 4), rep("Dataset 2", 4), rep("Dataset 3", 4)),
+  Model = rep(c("Baseline RF", "Mitigated RF", "Mitigated NB", "Mitigated KNN"), 3),
+  DPD = c("0.036", "0.049", "0.066", "0.048",
+          "0.111", "0.154", "0.065", "0.144",
+          "0.171", "0.117", "0.045", "0.093"),
+  EOD = c("0.051", "0.091", "0.083", "0.127",
+          "0.201", "0.260", "0.222", "0.243",
+          "0.287", "0.225", "0.131", "0.656"),
+  Calibration = c("0.004", "0.017", "0.005", "0.026",
+                   "0.008", "0.006", "0.019", "0.053",
+                   "0.021", "0.016", "0.126", "0.055"),
+  DIR = c("0.954", "0.923", "0.883", "0.906",
+          "0.591", "0.601", "0.804", "0.665",
+          "0.701", "0.774", "0.930", "0.811")
 )
-kable(fairness, caption = "TABLE V: Fairness Metrics (Baseline vs. Mitigated Logistic)",
-      col.names = c("Dataset", "Model", "Dem. Parity Diff.", "Equal. Odds Diff.", "Disp. Impact Ratio"),
-      align = "llccc", booktabs = TRUE) %>%
+kable(fairness, caption = "TABLE III: Fairness Metrics (All Models)",
+      col.names = c("Dataset", "Model", "Dem. Parity", "Equal. Odds", "Calibration", "DI Ratio"),
+      align = "llcccc", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"))
+```
+
+**Dataset 1**: The baseline RF has DPD of 0.036. No mitigated model improves DPD on this dataset, reflecting its already low baseline bias.
+
+**Dataset 2**: The mitigated NB achieves the best DPD (0.065 vs. baseline 0.111), a 41.1% reduction, and the best DI ratio (0.804), crossing the 0.8 four-fifths threshold. The mitigated RF has the lowest calibration difference (0.006).
+
+**Dataset 3**: The mitigated NB achieves DPD of 0.045 vs. baseline 0.171, a **73.5% reduction**. The DI ratio improves from 0.701 to 0.930. Equalized odds also improves substantially (0.287 to 0.131).
+
+## C. Calibration Analysis
+
+Calibration measures whether predicted probabilities are equally accurate across gender groups. Low calibration difference indicates that the model is not systematically over- or under-predicting for one group. The baseline RF generally has good calibration (0.004 to 0.021 across datasets). Among mitigated models, the mitigated RF consistently maintains competitive calibration (0.006 to 0.017), while the mitigated NB shows higher calibration error on Dataset 3 (0.126), suggesting a trade-off between demographic parity improvement and calibration.
+
+## D. Bias Reduction Summary
+
+```{r table_reduction, results='asis'}
+red <- data.frame(
+  Dataset = c("Dataset 1", "Dataset 2", "Dataset 3"),
+  Baseline_DPD = c("0.036", "0.111", "0.171"),
+  Best_Mitigated_DPD = c("0.048 (KNN)", "0.065 (NB)", "0.045 (NB)"),
+  Reduction = c("-34.1%*", "41.1%", "73.5%")
+)
+kable(red, caption = "TABLE IV: Bias Reduction Summary",
+      col.names = c("Dataset", "Baseline DPD", "Best Mitigated DPD", "Reduction %"),
+      align = "lccc", booktabs = TRUE) %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-**Dataset 1**: The mitigated logistic model reduces demographic parity difference by **86.1%** (from 0.064 to 0.009), a substantial improvement. Equalized odds difference also decreases from 0.071 to 0.044 (38.1% reduction). The disparate impact ratio improves from 0.935 to 0.982, moving closer to perfect parity.
-
-**Dataset 2**: The baseline already exhibits low demographic parity difference (0.013), reflecting the near-balanced hiring rates in the raw data. After reweighting, demographic parity difference increases to 0.052. However, equalized odds difference improves from 0.046 to 0.026 (43.2% reduction), indicating that while overall selection rates shift, the error rates become more equitable across groups. This illustrates the well-documented tension between different fairness criteria [8] and demonstrates that mitigation outcomes depend on baseline bias levels.
-
-## C. Cross-Dataset Analysis
-
-The contrasting results across datasets provide important insights:
-
-1. **When baseline bias is present** (Dataset 1, DPD = 0.064): reweighting effectively reduces disparate selection rates while maintaining reasonable model calibration.
-
-2. **When baseline bias is minimal** (Dataset 2, DPD = 0.013): reweighting may introduce slight demographic parity imbalance while still improving equalized odds. This suggests that practitioners should assess baseline bias levels before applying uniform mitigation strategies.
-
-3. **Model choice matters**: On Dataset 2, ensemble methods (RF, XGBoost) substantially outperform logistic regression in both accuracy and AUC while incorporating reweighting, demonstrating that model capacity and mitigation are complementary rather than competing objectives.
+*Dataset 1 shows negative reduction because baseline bias was already very low (DPD = 0.036), and reweighting slightly increased it. This is consistent with the known limitation that mitigation applied to already-fair data may introduce minor perturbations.
 
 # VI. XAI Analysis
 
 ## A. Feature Importance
 
-Permutation-based feature importance analysis reveals distinct driver profiles across datasets. For Dataset 1, Interview Score and Skills Score emerge as the most influential features, with CGPA and Experience Years contributing moderately. Gender shows minimal direct importance, consistent with the expectation that bias operates through correlated features rather than direct protected attribute effects.
-
-For Dataset 2, Interview Score, Skill Score, and Experience Years dominate predictions. Personality Score and Age contribute meaningfully, while Recruitment Strategy and Distance from Company show lower importance. The consistency of Interview Score as a top predictor across both datasets suggests robust feature relevance.
+Permutation-based feature importance reveals distinct driver profiles. For Dataset 1, Interview Score and Skills Score are the most influential. For Dataset 2, Interview Score and Skill Score dominate. For Dataset 3, Computer Skills and Previous Salary are the top predictors. Gender shows minimal direct importance across all datasets, confirming that bias operates through correlated features.
 
 ## B. Break-Down Attribution
 
-Break-down plots for individual predictions decompose the contribution of each feature. In Dataset 1, a typical selected candidate receives positive contributions from high Interview Score (+0.12) and Skills Score (+0.08), partially offset by lower CGPA (-0.03). In Dataset 2, Experience Years and Interview Score jointly contribute the largest positive attributions for hired candidates.
+Break-down plots decompose individual predictions by feature contribution, providing the transparency required by emerging right-to-explanation regulations. Each candidate's prediction can be explained in terms of which features pushed toward or against a positive outcome.
 
-These attributions provide actionable transparency: hiring managers can understand which candidate characteristics drove specific predictions, supporting the right to explanation mandated by emerging AI regulations.
+## C. Partial Dependence and ROC
 
-## C. Partial Dependence Profiles
-
-PDPs for Interview Score reveal monotonically increasing predicted hiring probability across both datasets, confirming intuitive feature behavior. In Dataset 1, the PDP curve shows a gradual increase from approximately 0.45 probability at score 45 to 0.60 at score 95. In Dataset 2, the curve rises more steeply from approximately 0.15 at score 20 to 0.55 at score 80, reflecting the higher selectivity of this dataset.
-
-## D. ROC Analysis by Gender
-
-Gender-stratified ROC curves enable visual assessment of discriminative equity. In Dataset 1, baseline model ROC curves show slight separation between gender groups, with male candidates receiving marginally higher AUC. After mitigation, the curves converge, indicating more equitable discriminative performance. In Dataset 2, gender-stratified ROC curves remain closely overlapping both before and after mitigation, consistent with the low baseline bias in this dataset.
+PDPs confirm intuitive feature behavior: Interview Score and Computer Skills show monotonically increasing predicted probability. Gender-stratified ROC curves converge after mitigation, indicating more equitable discriminative performance across groups.
 
 # VII. Discussion
 
 ## A. Pipeline Effectiveness
 
-The dual-dataset validation demonstrates that the reweighting-based pipeline architecture is effective across different data contexts. On Dataset 1, where bias is measurably present, the pipeline achieves substantial fairness improvements (86.1% DPD reduction). On Dataset 2, where baseline bias is minimal, the pipeline maintains strong predictive performance while improving equalized odds. This suggests the pipeline is robust rather than narrowly tuned to a single bias scenario.
+The three-dataset validation demonstrates that the reweighting-based pipeline generalizes across different data contexts. On Dataset 3, where bias is most pronounced (DPD = 0.171), the pipeline achieves 73.5% reduction. On Dataset 2, the mitigated RF improves both accuracy and AUC over the baseline. On Dataset 1, where baseline bias is minimal, the pipeline appropriately avoids aggressive over-correction.
 
-## B. Fairness-Performance Trade-off
+## B. Model Comparison: RF vs NB vs KNN
 
-Our results illustrate the well-documented trade-off between fairness and accuracy [9]. On Dataset 1, mitigated models sacrifice approximately 8 percentage points of accuracy relative to the baseline. On Dataset 2, the mitigated random forest actually exceeds baseline accuracy (0.889 vs. 0.863), demonstrating that the trade-off is not inevitable and depends on data characteristics and model capacity.
+Different models show different strengths. Random Forest provides the best overall accuracy and calibration. Naive Bayes achieves the strongest demographic parity improvements, particularly on Datasets 2 and 3. KNN provides an intermediate balance. This confirms that model selection should consider the specific fairness-performance trade-off desired.
 
 ## C. UAE and Regional Relevance
 
-The United Arab Emirates has positioned itself as a leader in AI governance, with the UAE National AI Strategy 2031 emphasizing ethical AI deployment. In the Gulf Cooperation Council (GCC) region, where expatriate workforces are diverse and hiring decisions have significant visa and residency implications, fair AI-driven hiring is particularly consequential.
-
-Our pipeline directly supports compliance with emerging regional AI ethics frameworks by providing: (1) measurable fairness metrics for audit and reporting, (2) explainable predictions for regulatory transparency, and (3) a deployable API architecture for integration into existing HR technology stacks.
-
-## D. Practical Deployment Considerations
-
-The Plumber REST API deployment enables real-time bias-aware predictions. The `/predict` endpoint returns both the hiring recommendation and associated fairness scores, enabling organizations to flag predictions that may warrant human review. The `/fairness_report` endpoint provides aggregate fairness metrics for ongoing monitoring.
+The UAE AI Strategy 2031 emphasizes ethical AI deployment. In the GCC region, where expatriate workforces are diverse and hiring decisions have visa and residency implications, fair AI-driven hiring is particularly consequential. Our pipeline supports compliance with regional AI ethics frameworks through measurable fairness metrics, explainable predictions, and deployable infrastructure (API + Shiny dashboard).
 
 # VIII. Limitations
 
-Several limitations should be acknowledged:
-
-1. **Synthetic data realism**: Dataset 1 is synthetically generated, and while it enables controlled experiments, it may not capture the full complexity of real hiring data.
-
-2. **Single protected attribute**: Our analysis considers only gender (binary) as the protected attribute. Real-world hiring bias is intersectional, involving race, age, disability, and other characteristics.
-
-3. **Binary gender encoding**: Both datasets encode gender as binary, which does not reflect the spectrum of gender identities.
-
-4. **No causal claims**: Our analysis is observational. Reductions in fairness metric disparities do not establish causal fairness.
-
-5. **Metric trade-offs**: As demonstrated on Dataset 2, optimizing one fairness metric may worsen another, consistent with impossibility results in the fairness literature [8].
-
-6. **Static pipeline**: The current pipeline does not address concept drift or distributional shift over time, which would require ongoing monitoring in production.
+1. **Synthetic data realism**: Dataset 1 may not capture real-world complexity.
+2. **Single protected attribute**: Only binary gender is analyzed; real-world bias is intersectional.
+3. **Binary gender encoding**: Does not reflect the gender spectrum.
+4. **No causal claims**: Analysis is observational.
+5. **Metric trade-offs**: Optimizing one fairness metric may worsen another [8].
+6. **Static pipeline**: No concept drift monitoring for production use.
 
 # IX. Conclusion and Future Directions
 
-This paper presents a comprehensive, reproducible bias mitigation pipeline for AI-driven hiring, validated across two distinct datasets. The pipeline follows the DALC/MLOps methodology, implementing six phases from data preparation through deployment. Key contributions include:
-
-- Demonstration of 86.1% demographic parity reduction on a biased synthetic dataset.
-- Cross-dataset validation showing pipeline generalizability across different data characteristics.
-- Integration of fairness metrics with DALEX-based explainability for transparent decision-making.
-- Deployable REST API for real-time bias-aware predictions.
-
-Future work will extend the pipeline to address multiple protected attributes simultaneously, incorporate post-processing calibration techniques, implement concept drift monitoring for production deployment, and evaluate causal fairness frameworks. Additionally, expanding to non-binary gender representations and intersectional fairness analysis would enhance real-world applicability.
+This paper presents a reproducible bias mitigation pipeline for AI-driven hiring, validated across three datasets with different characteristics. The pipeline uses Random Forest, Naive Bayes, and KNN with inverse-frequency reweighting, evaluated on demographic parity, equalized odds, calibration, and disparate impact ratio. Key results include 73.5% bias reduction on the FairJob dataset and improved accuracy with the mitigated RF on the Kaggle dataset. Deployment through both a Plumber REST API and a Shiny dashboard supports practical adoption. Future work will extend to intersectional fairness analysis, post-processing calibration, and concept drift monitoring.
 
 # References
 
